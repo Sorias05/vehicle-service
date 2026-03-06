@@ -21,11 +21,13 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
 
           script: |
-            cd vehicle-service/backend
-
-            echo "${{ secrets.ENV_FILE }}" > .env
+            cd vehicle-service
 
             git pull origin main
+
+            cd backend
+
+            echo "${{ secrets.ENV_FILE }}" > .env
 
             docker compose down
 
