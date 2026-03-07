@@ -12,6 +12,10 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - backend
+    deploy:
+      resources:
+        limits:
+          memory: 200M
 
   postgres:
     image: postgres:15
@@ -23,15 +27,19 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - backend
+    deploy:
+      resources:
+        limits:
+          memory: 200M
 
-  postgres_admin:
-    image: dpage/pgadmin4
-    ports:
-      - '15432:80'
-    env_file:
-      - .env
-    networks:
-      - backend
+  # postgres_admin:
+  #   image: dpage/pgadmin4
+  #   ports:
+  #     - '15432:80'
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - backend
 
   redis:
     image: redis:7
@@ -41,6 +49,10 @@ services:
       - redis_data:/data
     networks:
       - backend
+    deploy:
+      resources:
+        limits:
+          memory: 200M
 
 volumes:
   rabbitmq_data:
