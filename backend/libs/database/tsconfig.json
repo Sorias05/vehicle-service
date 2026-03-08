@@ -1,9 +1,11 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "outDir": "../../dist/libs/database/src",
+    "rootDir": "./src",
     "declaration": true,
-    "outDir": "../../dist/libs/database"
+    "composite": true
   },
-  "include": ["src/**/*"],
+  "include": ["src"],
   "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
 }

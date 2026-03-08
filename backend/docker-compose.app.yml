@@ -9,13 +9,11 @@ services:
       - '4001:5001'
     env_file:
       - .env
-    command: npm run start:dev vehicle
+    command: npm run start:vehicle
     networks:
       - backend
-    deploy:
-      resources:
-        limits:
-          memory: 200M
+    mem_limit: 100m
+    restart: always
 
   user:
     build:
@@ -25,14 +23,11 @@ services:
       - '4000:5000'
     env_file:
       - .env
-    command: >
-      sh -c "npm run migration:run && npm run start:dev user"
+    command: sh -c "npm run migration:run:prod && npm run start:user"
     networks:
       - backend
-    deploy:
-      resources:
-        limits:
-          memory: 600M
+    mem_limit: 100m
+    restart: always
 
 networks:
   backend:
