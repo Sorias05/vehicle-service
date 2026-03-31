@@ -27,10 +27,21 @@ jobs:
 
             cd backend
 
-            echo "${{ secrets.ENV_FILE }}" > .env
+            cat <<EOF > .env
+            ${{ secrets.ENV_FILE }}
+            CORS_ORIGIN=http://${{ secrets.EC2_HOST }}:5173
+            EOF
 
             docker compose -f docker-compose.app.yml down -v --remove-orphans
-
             docker compose -f docker-compose.infra.yml up -d
+            docker compose -f docker-compose.app.yml up --build -d
 
+            cd ../frontend
+
+            cat <<EOF > .env
+            VITE_USER_URL=http://${{ secrets.EC2_HOST }}:4000
+            VITE_VEHICLE_URL=http://${{ secrets.EC2_HOST }}:4001
+            EOF
+
+            docker compose -f docker-compose.app.yml down -v --remove-orphans
             docker compose -f docker-compose.app.yml up --build -d

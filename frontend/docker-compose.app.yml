@@ -1,0 +1,17 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "5173:5173"
+    networks:
+      - frontend
+    mem_limit: 100m
+    restart: always
+
+networks:
+  frontend:
+    external: true
