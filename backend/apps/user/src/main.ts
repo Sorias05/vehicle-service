@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import { createClient } from 'redis';
 import { RedisStore } from 'connect-redis';
 import * as session from 'express-session';
@@ -6,9 +7,13 @@ import { UserModule } from './user.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(UserModule);
+  const configService = app.get(ConfigService);
+
+  const HOST = configService.get('REDIS_HOST');
+  const PORT = configService.get('REDIS_PORT');
 
   const redisClient = createClient({
-    url: 'redis://redis:6379',
+    url: `redis://${HOST}:${PORT}`,
   });
 
   await redisClient.connect();

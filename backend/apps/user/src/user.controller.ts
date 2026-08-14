@@ -21,6 +21,13 @@ export class UserController {
     @Inject('VEHICLE_SERVICE') private vehicleService: ClientProxy,
   ) {}
 
+  @Get('health')
+  health() {
+    return {
+      status: 'ok',
+    };
+  }
+
   @Post('register')
   async register(@Body() userDto: any) {
     const user = await this.userService.register(userDto);

@@ -3,6 +3,7 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 RUN npm ci
+
 COPY . .
 RUN npm run build
 
@@ -13,6 +14,7 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 COPY --from=builder /usr/src/app/dist ./dist
-COPY .env .env
+# COPY .env .env
 
-CMD ["sh", "-c", "npm run migration:run:prod && npm run start:user"]
+# CMD ["sh", "-c", "npm run migration:run:prod && npm run start:user"]
+CMD ["npm", "run", "start:user"]

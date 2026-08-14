@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { VehicleService } from './vehicle.service';
 import {
   Ctx,
@@ -77,6 +85,13 @@ export class VehicleController {
   //   channel.ack(message);
   //   return this.vehicleService.deleteVehicle(id);
   // }
+
+  @Get('health')
+  health() {
+    return {
+      status: 'ok',
+    };
+  }
 
   @Post()
   async postVehicle(@Body() vehicleDto: any) {

@@ -3,20 +3,29 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+# RUN npm install
+RUN npm ci
 
 COPY . .
 
 RUN npm run build
 
-FROM node:22-alpine
+# FROM node:22-alpine
 
-WORKDIR /app
+# WORKDIR /app
 
-RUN npm install -g serve
+# RUN npm install -g serve
 
-COPY --from=builder /app/dist ./dist
+# COPY --from=builder /app/dist ./dist
 
-EXPOSE 5173
+# EXPOSE 5173
 
-CMD ["serve", "-s", "dist", "-l", "5173"]
+# CMD ["serve", "-s", "dist", "-l", "5173"]
+
+FROM nginx:1.27-alpine
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
