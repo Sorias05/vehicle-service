@@ -5,13 +5,15 @@ import {
   Get,
   Inject,
   Param,
-  Post,
+  ParseIntPipe,
   Put,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+
+import { HashService } from './hash.service';
 import { UserService } from './user.service';
 
 @Controller()
@@ -21,40 +23,8 @@ export class UserController {
     @Inject('VEHICLE_SERVICE') private vehicleService: ClientProxy,
   ) {}
 
-  @Get('health')
-  health() {
-    return {
-      status: 'ok',
-    };
-  }
-
-  @Post('register')
-  async register(@Body() userDto: any) {
-    const user = await this.userService.register(userDto);
-
-    if (!user) return user;
-
-    return {
-      ...user,
-      vehicle: await this.postEmptyVehicle(user.id),
-    };
-  }
-
-  @Post('login')
-  async login(@Body() userDto: any, @Req() req: any) {
-    const user = await this.userService.validateUser(userDto);
-
-    if (!user) {
-      throw new UnauthorizedException();
-    }
-
-    req.session.userId = user.id;
-
-    return { message: `Logged in as ${user.email}` };
-  }
-
   @Get('profile')
-  getProfile(@Req() req: any) {
+  async getProfile(@Req() req: any) {
     const id = req.session.userId;
 
     if (!id) {
@@ -70,7 +40,7 @@ export class UserController {
   }
 
   @Get(':id')
-  async getUser(@Param('id') id: number) {
+  async getUser(@Param('id', ParseIntPipe) id: number) {
     const user = await this.userService.getUser(id);
 
     return {
@@ -81,7 +51,8 @@ export class UserController {
 
   @Put(':id')
   async putUser(@Param('id') id: number, @Body() userDto: any) {
-    return this.userService.putUser(id, userDto);
+    const password = HashService.hash(userDto.password);
+    return this.userService.putUser(id, { ...userDto, password });
   }
 
   @Delete(':id')

@@ -29,6 +29,36 @@
       ],
       "@app/database/*": [
         "libs/database/src/*"
+      ],
+      "@app/authlib": [
+        "libs/authlib/src"
+      ],
+      "@app/authlib/*": [
+        "libs/authlib/src/*"
+      ],
+      "@app/health": [
+        "libs/health/src"
+      ],
+      "@app/health/*": [
+        "libs/health/src/*"
+      ],
+      "@app/redis": [
+        "libs/redis/src"
+      ],
+      "@app/redis/*": [
+        "libs/redis/src/*"
+      ],
+      "@app/s3": [
+        "libs/s3/src"
+      ],
+      "@app/s3/*": [
+        "libs/s3/src/*"
+      ],
+      "@app/rabbitmq": [
+        "libs/rabbitmq/src"
+      ],
+      "@app/rabbitmq/*": [
+        "libs/rabbitmq/src/*"
       ]
     }
   }

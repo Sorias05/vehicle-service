@@ -44,6 +44,69 @@
       "compilerOptions": {
         "tsConfigPath": "libs/database/tsconfig.json"
       }
+    },
+    "auth": {
+      "type": "application",
+      "root": "apps/auth",
+      "entryFile": "main",
+      "sourceRoot": "apps/auth/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/auth/tsconfig.json"
+      }
+    },
+    "authlib": {
+      "type": "library",
+      "root": "libs/authlib",
+      "entryFile": "index",
+      "sourceRoot": "libs/authlib/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/authlib/tsconfig.json"
+      }
+    },
+    "storage": {
+      "type": "application",
+      "root": "apps/storage",
+      "entryFile": "main",
+      "sourceRoot": "apps/storage/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/storage/tsconfig.json"
+      }
+    },
+    "health": {
+      "type": "library",
+      "root": "libs/health",
+      "entryFile": "index",
+      "sourceRoot": "libs/health/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/health/tsconfig.json"
+      }
+    },
+    "redis": {
+      "type": "library",
+      "root": "libs/redis",
+      "entryFile": "index",
+      "sourceRoot": "libs/redis/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/redis/tsconfig.json"
+      }
+    },
+    "s3": {
+      "type": "library",
+      "root": "libs/s3",
+      "entryFile": "index",
+      "sourceRoot": "libs/s3/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/s3/tsconfig.json"
+      }
+    },
+    "rabbitmq": {
+      "type": "library",
+      "root": "libs/rabbitmq",
+      "entryFile": "index",
+      "sourceRoot": "libs/rabbitmq/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/rabbitmq/tsconfig.json"
+      }
     }
   }
 }

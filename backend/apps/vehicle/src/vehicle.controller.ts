@@ -7,13 +7,14 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { VehicleService } from './vehicle.service';
 import {
   Ctx,
   MessagePattern,
   Payload,
   RmqContext,
 } from '@nestjs/microservices';
+
+import { VehicleService } from './vehicle.service';
 
 @Controller()
 export class VehicleController {
@@ -85,13 +86,6 @@ export class VehicleController {
   //   channel.ack(message);
   //   return this.vehicleService.deleteVehicle(id);
   // }
-
-  @Get('health')
-  health() {
-    return {
-      status: 'ok',
-    };
-  }
 
   @Post()
   async postVehicle(@Body() vehicleDto: any) {

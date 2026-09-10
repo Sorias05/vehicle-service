@@ -29,6 +29,8 @@ services:
     build:
       context: ./backend
       dockerfile: ./apps/user/Dockerfile
+    ports:
+      - "4000:5000"
     env_file:
       - ./backend/.env
     command: sh -c "npm run migration:run:prod && npm run start:user"
@@ -43,7 +45,83 @@ services:
       rabbitmq:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:5000/health').then(() => process.exit(0)).catch(() => process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:5000/health').then(() => process.exit(0)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    mem_limit: 100m
+
+  auth:
+    build:
+      context: ./backend
+      dockerfile: ./apps/auth/Dockerfile
+    ports:
+      - "4002:5002"
+    env_file:
+      - ./backend/.env
+    command: npm run start:auth
+    networks:
+      - edge
+      - backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:5002/health').then(() => process.exit(0)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    mem_limit: 100m
+
+  storage:
+    build:
+      context: ./backend
+      dockerfile: ./apps/storage/Dockerfile
+    ports:
+      - "4003:5003"
+    extra_hosts:
+      - "s3.localhost.localstack.cloud:host-gateway"
+    env_file:
+      - ./backend/.env
+    command: npm run start:storage
+    networks:
+      - edge
+      - backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:5003/health').then(() => process.exit(0)).catch(() => process.exit(1))",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -55,6 +133,8 @@ services:
     build:
       context: ./backend
       dockerfile: ./apps/vehicle/Dockerfile
+    ports:
+      - "4001:5001"
     env_file:
       - ./backend/.env
     command: npm run start:vehicle
@@ -69,7 +149,13 @@ services:
       rabbitmq:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:5001/health').then(() => process.exit(0)).catch(() => process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:5001/health').then(() => process.exit(0)).catch(() => process.exit(1))",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -79,6 +165,8 @@ services:
 
   postgres:
     image: postgres:15
+    ports:
+      - '5433:5432'
     env_file:
       - .env
     volumes:
@@ -122,6 +210,27 @@ services:
       retries: 10
     restart: unless-stopped
     mem_limit: 200m
+
+  localstack:
+    image: localstack/localstack:2026.7.5
+    container_name: vehicle-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      # - PERSISTENCE=1
+      # - SNAPSHOT_SAVE_STRATEGY=ON_SHUTDOWN
+      # - SNAPSHOT_LOAD_STRATEGY=ON_STARTUP
+      - AWS_DEFAULT_REGION=eu-central-1
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN}
+    volumes:
+      - ./infra/localstack/init/ready.d:/etc/localstack/init/ready.d
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - backend
+      - edge
+    restart: unless-stopped
+    mem_limit: 512m
 
 volumes:
   postgres_data:

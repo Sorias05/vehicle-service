@@ -1,36 +1,27 @@
-import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { NestFactory } from '@nestjs/core';
+import { MicroserviceOptions } from '@nestjs/microservices';
+
+import { getRabbitMqServerOptions } from '@app/rabbitmq';
+
 import { VehicleModule } from './vehicle.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(VehicleModule);
   const configService = app.get(ConfigService);
 
-  const USER = configService.get('RABBITMQ_USER');
-  const PASSWORD = configService.get('RABBITMQ_PASS');
-  const HOST = configService.get('RABBITMQ_HOST');
-  const PORT = configService.get('RABBITMQ_PORT');
-  const QUEUE = configService.get('RABBITMQ_VEHICLE_QUEUE');
+  app.enableShutdownHooks();
 
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.RMQ,
-    options: {
-      urls: [`amqp://${USER}:${PASSWORD}@${HOST}:${PORT}`],
-      noAck: false,
-      queue: QUEUE,
-      queueOptions: {
-        durable: true,
-      },
-    },
-  });
+  app.connectMicroservice<MicroserviceOptions>(
+    getRabbitMqServerOptions(configService, 'vehicle'),
+  );
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN,
     credentials: true,
   });
 
-  app.startAllMicroservices();
+  await app.startAllMicroservices();
   await app.listen(5001);
 }
 bootstrap();

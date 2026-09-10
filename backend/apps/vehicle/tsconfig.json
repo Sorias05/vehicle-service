@@ -10,6 +10,11 @@
   "exclude": ["node_modules", "dist", "test", "**/*spec.ts"],
   "references": [
     { "path": "../../libs/shared" },
-    { "path": "../../libs/database" }
+    { "path": "../../libs/database" },
+    { "path": "../../libs/authlib" },
+    { "path": "../../libs/health" },
+    { "path": "../../libs/redis" },
+    { "path": "../../libs/s3" },
+    { "path": "../../libs/rabbitmq" }
   ]
 }

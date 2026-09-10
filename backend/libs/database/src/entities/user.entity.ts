@@ -1,4 +1,5 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+
 import { VehicleEntity } from './vehicle.entity';
 
 @Entity('user')

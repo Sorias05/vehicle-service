@@ -1,18 +1,24 @@
 import { Module } from '@nestjs/common';
-import { UserController } from './user.controller';
-import { UserService } from './user.service';
-import { SharedModule } from '@app/shared';
+
+import { authGuardProvider } from '@app/authlib';
 import { DatabaseModule } from '@app/database';
 import { UserEntity } from '@app/database/entities/user.entity';
-import { HashService } from './hash.service';
+import { HealthModule } from '@app/health';
+import { RabbitMqModule } from '@app/rabbitmq';
+import { SharedModule } from '@app/shared';
+
+import { UserController } from './user.controller';
+import { UserService } from './user.service';
 
 @Module({
   imports: [
     SharedModule.registerConfig(),
-    SharedModule.registerRmq('vehicle'),
-    DatabaseModule.registerDatabase([UserEntity]),
+    RabbitMqModule.registerAuth(),
+    RabbitMqModule.register('vehicle'),
+    DatabaseModule.register([UserEntity]),
+    HealthModule.register(['postgres', 'rabbitmq', 'auth']),
   ],
   controllers: [UserController],
-  providers: [UserService, HashService],
+  providers: [UserService, authGuardProvider],
 })
 export class UserModule {}

@@ -15,6 +15,34 @@ services:
     mem_limit: 100m
     restart: always
 
+  auth:
+    build:
+      context: .
+      dockerfile: ./apps/auth/Dockerfile
+    ports:
+      - '4002:5002'
+    env_file:
+      - .env
+    command: npm run start:auth
+    networks:
+      - backend
+    mem_limit: 100m
+    restart: always
+
+  storage:
+    build:
+      context: .
+      dockerfile: ./apps/storage/Dockerfile
+    ports:
+      - '4002:5002'
+    env_file:
+      - .env
+    command: npm run start:storage
+    networks:
+      - backend
+    mem_limit: 100m
+    restart: always
+
   user:
     build:
       context: .

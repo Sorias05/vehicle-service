@@ -1,4 +1,16 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"],
+  "references": [
+    { "path": "./libs/database" },
+    { "path": "./libs/authlib" },
+    { "path": "./libs/shared" },
+    { "path": "./libs/health" },
+    { "path": "./libs/redis" },
+    { "path": "./libs/s3" },
+    { "path": "./apps/auth" },
+    { "path": "./apps/user" },
+    { "path": "./apps/vehicle" },
+    { "path": "./apps/storage" }
+  ]
 }

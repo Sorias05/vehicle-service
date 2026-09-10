@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository, UpdateResult } from 'typeorm';
+
 import { VehicleEntity } from '@app/database/entities/vehicle.entity';
 
 @Injectable()

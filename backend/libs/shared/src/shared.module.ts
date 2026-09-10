@@ -1,5 +1,5 @@
 import { DynamicModule, Module } from '@nestjs/common';
-import { getService } from './utils/getService';
+
 import { getConfig } from './utils/getConfig';
 
 @Module({})
@@ -11,16 +11,6 @@ export class SharedModule {
       module: SharedModule,
       imports: [config],
       exports: [config],
-    };
-  }
-
-  static registerRmq(service: string): DynamicModule {
-    const serviceProvider = getService(service);
-
-    return {
-      module: SharedModule,
-      providers: [serviceProvider],
-      exports: [serviceProvider],
     };
   }
 }
