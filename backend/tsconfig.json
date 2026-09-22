@@ -59,6 +59,12 @@
       ],
       "@app/rabbitmq/*": [
         "libs/rabbitmq/src/*"
+      ],
+      "@app/o11y": [
+        "libs/o11y/src"
+      ],
+      "@app/o11y/*": [
+        "libs/o11y/src/*"
       ]
     }
   }

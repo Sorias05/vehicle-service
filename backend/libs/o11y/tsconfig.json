@@ -1,12 +1,12 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/apps/vehicle/src",
+    "outDir": "../../dist/libs/o11y/src",
     "rootDir": "./src",
     "declaration": true,
     "composite": true
   },
-  "include": ["src/**/*"],
+  "include": ["src"],
   "exclude": ["node_modules", "dist", "test", "**/*spec.ts"],
   "references": [
     { "path": "../../libs/shared" },
@@ -15,7 +15,6 @@
     { "path": "../../libs/health" },
     { "path": "../../libs/redis" },
     { "path": "../../libs/s3" },
-    { "path": "../../libs/rabbitmq" },
-    { "path": "../../libs/o11y" }
+    { "path": "../../libs/rabbitmq" }
   ]
 }

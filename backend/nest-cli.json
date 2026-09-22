@@ -107,6 +107,15 @@
       "compilerOptions": {
         "tsConfigPath": "libs/rabbitmq/tsconfig.json"
       }
+    },
+    "o11y": {
+      "type": "library",
+      "root": "libs/o11y",
+      "entryFile": "index",
+      "sourceRoot": "libs/o11y/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/o11y/tsconfig.json"
+      }
     }
   }
 }

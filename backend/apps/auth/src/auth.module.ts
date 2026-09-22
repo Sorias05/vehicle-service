@@ -4,6 +4,7 @@ import { authGuardProvider } from '@app/authlib';
 import { DatabaseModule } from '@app/database';
 import { UserEntity } from '@app/database/entities/user.entity';
 import { HealthModule } from '@app/health';
+import { getRequestId, O11yModule, RPC_METRICS } from '@app/o11y';
 import { RabbitMqModule } from '@app/rabbitmq';
 import { RedisModule } from '@app/redis';
 import { SharedModule } from '@app/shared';
@@ -18,10 +19,14 @@ import { SessionService } from './session/session.service';
 @Module({
   imports: [
     SharedModule.registerConfig(),
-    RabbitMqModule.registerAuth(),
+    RabbitMqModule.registerAuth({
+      requestIdProvider: getRequestId,
+      rpcMetricsToken: RPC_METRICS,
+    }),
     DatabaseModule.register([UserEntity]),
     RedisModule,
     HealthModule.register(['postgres', 'redis', 'rabbitmq', 'auth']),
+    O11yModule.register('auth'),
   ],
   controllers: [AuthController, AuthMessageController],
   providers: [

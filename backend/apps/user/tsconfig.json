@@ -15,6 +15,7 @@
     { "path": "../../libs/health" },
     { "path": "../../libs/redis" },
     { "path": "../../libs/s3" },
-    { "path": "../../libs/rabbitmq" }
+    { "path": "../../libs/rabbitmq" },
+    { "path": "../../libs/o11y" }
   ]
 }

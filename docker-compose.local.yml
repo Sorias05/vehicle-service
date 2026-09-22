@@ -25,6 +25,31 @@ services:
     restart: unless-stopped
     mem_limit: 100m
 
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.21.0
+    environment:
+      OTEL_TRACES_SAMPLER: always_off
+    ports:
+      - "16686:16686"
+    networks:
+      - backend
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    command:
+      - "--config=/etc/otelcol/config.yaml"
+    volumes:
+      - ./infra/o11y/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - backend
+    depends_on:
+      - jaeger
+    restart: unless-stopped
+
   user:
     build:
       context: ./backend
@@ -50,9 +75,9 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://localhost:5000/health').then(() => process.exit(0)).catch(() => process.exit(1))",
+          "fetch('http://localhost:5000/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
-      interval: 10s
+      interval: 60s
       timeout: 5s
       retries: 5
       start_period: 20s
@@ -84,9 +109,9 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://localhost:5002/health').then(() => process.exit(0)).catch(() => process.exit(1))",
+          "fetch('http://localhost:5002/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
-      interval: 10s
+      interval: 60s
       timeout: 5s
       retries: 5
       start_period: 20s
@@ -120,9 +145,9 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://localhost:5003/health').then(() => process.exit(0)).catch(() => process.exit(1))",
+          "fetch('http://localhost:5003/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
-      interval: 10s
+      interval: 60s
       timeout: 5s
       retries: 5
       start_period: 20s
@@ -154,9 +179,9 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://localhost:5001/health').then(() => process.exit(0)).catch(() => process.exit(1))",
+          "fetch('http://localhost:5001/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
-      interval: 10s
+      interval: 60s
       timeout: 5s
       retries: 5
       start_period: 20s
@@ -166,7 +191,7 @@ services:
   postgres:
     image: postgres:15
     ports:
-      - '5433:5432'
+      - "5433:5432"
     env_file:
       - .env
     volumes:
@@ -204,7 +229,7 @@ services:
     networks:
       - backend
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_listener", "5672"]
       interval: 10s
       timeout: 5s
       retries: 10

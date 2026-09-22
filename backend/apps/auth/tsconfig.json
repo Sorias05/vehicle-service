@@ -13,6 +13,7 @@
     { "path": "../../libs/database" },
     { "path": "../../libs/authlib" },
     { "path": "../../libs/health" },
-    { "path": "../../libs/redis" }
+    { "path": "../../libs/redis" },
+    { "path": "../../libs/o11y" },
   ]
 }
