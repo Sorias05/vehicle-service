@@ -8,16 +8,20 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 const IGNORED_INCOMING_PATHS = new Set([
   '/health/live',
   '/health/ready',
-  '/metrics',
+  '/metrics/get',
 ]);
 
 let sdk: NodeSDK | undefined;
 
 export const startTracing = (serviceName: string): NodeSDK => {
+  const tracesEndpoint = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
+
+  if (!tracesEndpoint) {
+    throw new Error('OTEL_EXPORTER_OTLP_TRACES_ENDPOINT is not configured');
+  }
+
   const traceExporter = new OTLPTraceExporter({
-    url:
-      process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ??
-      'http://localhost:4318/v1/traces',
+    url: tracesEndpoint,
   });
 
   sdk = new NodeSDK({

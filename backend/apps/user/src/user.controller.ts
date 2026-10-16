@@ -10,8 +10,10 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+
+import { HttpClientService } from '@app/http';
+import { getRpcClientToken, RpcClient } from '@app/rpc';
 
 import { HashService } from './hash.service';
 import { UserService } from './user.service';
@@ -20,7 +22,9 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(
     private readonly userService: UserService,
-    @Inject('VEHICLE_SERVICE') private vehicleService: ClientProxy,
+    @Inject(getRpcClientToken('vehicle'))
+    private readonly vehicleRpc: RpcClient,
+    private readonly vehicleService: HttpClientService,
   ) {}
 
   @Get('profile')
@@ -42,10 +46,18 @@ export class UserController {
   @Get(':id')
   async getUser(@Param('id', ParseIntPipe) id: number) {
     const user = await this.userService.getUser(id);
+    const vehicle = await this.getVehicleByUserId(id);
+    // const vehicle = await firstValueFrom(
+    //   this.vehicleService.request({
+    //     method: 'GET',
+    //     url: '/',
+    //     idempotent: true,
+    //   }),
+    // );
 
     return {
       ...user,
-      vehicle: await this.getVehicleByUserId(id),
+      vehicle,
     };
   }
 
@@ -62,19 +74,25 @@ export class UserController {
 
   async getVehicleByUserId(userId: number) {
     return firstValueFrom(
-      this.vehicleService.send({ cmd: 'get-vehicle-by-user' }, userId),
+      this.vehicleRpc.send({ cmd: 'get-vehicle-by-user' }, userId, {
+        idempotent: true,
+      }),
     );
   }
 
   async postVehicle(vehicle: any) {
     return firstValueFrom(
-      this.vehicleService.send({ cmd: 'post-vehicle' }, vehicle),
+      this.vehicleRpc.send({ cmd: 'post-vehicle' }, vehicle, {
+        idempotent: true,
+      }),
     );
   }
 
   async postEmptyVehicle(userId: number) {
     return firstValueFrom(
-      this.vehicleService.send({ cmd: 'user-created' }, userId),
+      this.vehicleRpc.send({ cmd: 'user-created' }, userId, {
+        idempotent: true,
+      }),
     );
   }
 }

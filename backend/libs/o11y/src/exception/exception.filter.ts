@@ -8,6 +8,8 @@ import {
 import { HttpAdapterHost } from '@nestjs/core';
 import { PinoLogger } from 'nestjs-pino';
 
+import { ServiceError, ServiceErrorType } from '@app/shared';
+
 import { getRequestId } from './../request-context';
 
 interface HttpRequest {
@@ -18,6 +20,17 @@ interface HttpRequest {
   };
   id?: unknown;
 }
+
+const SERVICE_ERROR_HTTP_STATUS: Record<ServiceErrorType, number> = {
+  TIMEOUT: 503,
+  UNAVAILABLE: 503,
+  NOT_FOUND: 404,
+  INVALID: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  CONFLICT: 409,
+  INTERNAL: 500,
+};
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -34,11 +47,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const { httpAdapter } = this.httpAdapterHost;
 
     const ctx = host.switchToHttp();
-
     const request = ctx.getRequest<HttpRequest>();
-
     const response = ctx.getResponse();
-
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
@@ -47,15 +57,54 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const requestId =
       getRequestId() ??
       (typeof request.id === 'string' ? request.id : undefined);
-
     const route = request.route?.path ?? request.url;
-
     const logContext = {
       requestId,
       method: request.method,
       route,
       statusCode: status,
     };
+
+    if (exception instanceof ServiceError) {
+      const status = SERVICE_ERROR_HTTP_STATUS[exception.type];
+
+      const logContext = {
+        requestId,
+        method: request.method,
+        route,
+        statusCode: status,
+        errorType: exception.type,
+        errorCode: exception.code,
+        service: exception.service,
+        operation: exception.operation,
+      };
+
+      if (status >= 500) {
+        this.logger.error(
+          {
+            ...logContext,
+            err: exception,
+          },
+          'Service error',
+        );
+      } else {
+        this.logger.warn(logContext, 'Service error');
+      }
+
+      httpAdapter.reply(
+        response,
+        {
+          code: exception.code,
+          message: exception.message,
+          ...(exception.details !== undefined
+            ? { details: exception.details }
+            : {}),
+        },
+        status,
+      );
+
+      return;
+    }
 
     if (status >= 500) {
       this.logger.error(

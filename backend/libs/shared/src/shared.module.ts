@@ -1,6 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 
-import { getConfig } from './utils/getConfig';
+import { getConfig } from './config/config';
 
 @Module({})
 export class SharedModule {

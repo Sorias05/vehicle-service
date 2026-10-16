@@ -6,16 +6,18 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 
+import { getRpcClientToken, RpcClient } from '@app/rpc';
+
 import { IS_PUBLIC_KEY } from './authlib.decorators';
+import { ValidateSessionResponse } from './authlib.types';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
-    @Inject('AUTH_SERVICE')
-    private readonly authService: ClientProxy,
+    @Inject(getRpcClientToken('auth'))
+    private readonly authRpc: RpcClient,
     private readonly reflector: Reflector,
   ) {}
 
@@ -33,7 +35,11 @@ export class AuthGuard implements CanActivate {
     const cookie = request.headers.cookie;
 
     const result = await firstValueFrom(
-      this.authService.send({ cmd: 'auth.validate-session' }, { cookie }),
+      this.authRpc.send<ValidateSessionResponse>(
+        { cmd: 'auth.validate-session' },
+        { cookie },
+        { idempotent: true },
+      ),
     );
 
     if (!result.authenticated) {
@@ -47,30 +53,3 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 }
-
-// @Injectable()
-// export class AuthGuard implements CanActivate {
-//   constructor(
-//     @Inject('AUTH_SERVICE')
-//     private readonly authService: ClientProxy,
-//   ) {}
-
-//   async canActivate(context: ExecutionContext): Promise<boolean> {
-//     const request = context.switchToHttp().getRequest();
-//     const cookie = request.headers.cookie;
-
-//     const result = await firstValueFrom(
-//       this.authService.send({ cmd: 'auth.validate-session' }, { cookie }),
-//     );
-
-//     if (!result.authenticated) {
-//       throw new UnauthorizedException();
-//     }
-
-//     request.user = {
-//       id: result.userId,
-//     };
-
-//     return true;
-//   }
-// }

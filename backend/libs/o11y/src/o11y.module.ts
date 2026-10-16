@@ -49,7 +49,7 @@ export class O11yModule {
         },
         TracingLifecycle,
       ],
-      exports: [HttpMetricsService, RpcMetricsService, RPC_METRICS],
+      exports: [RPC_METRICS],
     };
   }
 }

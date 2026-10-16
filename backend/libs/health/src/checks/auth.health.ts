@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom, timeout } from 'rxjs';
 
-import { getRabbitMqServiceToken } from '@app/rabbitmq';
+import { getRabbitMqTransportToken } from '@app/rabbitmq';
+import { RpcClient } from '@app/rpc';
 
 import { HealthCheck, HealthCheckResult } from '../health.types';
 
@@ -15,8 +15,8 @@ export class AuthHealthCheck implements HealthCheck {
 
   async check(): Promise<HealthCheckResult> {
     try {
-      const client = this.moduleRef.get<ClientProxy>(
-        getRabbitMqServiceToken('auth'),
+      const client = this.moduleRef.get<RpcClient>(
+        getRabbitMqTransportToken('auth'),
         { strict: false },
       );
 

@@ -9,16 +9,13 @@ export function getRabbitMqServerOptions(
   const PASSWORD = configService.getOrThrow<string>('RABBITMQ_PASS');
   const HOST = configService.getOrThrow<string>('RABBITMQ_HOST');
   const PORT = configService.getOrThrow<string>('RABBITMQ_PORT');
-  const QUEUE = configService.getOrThrow<string>(
-    `RABBITMQ_${queue.toUpperCase()}_QUEUE`,
-  );
 
   return {
     transport: Transport.RMQ,
     options: {
       urls: [`amqp://${USER}:${PASSWORD}@${HOST}:${PORT}`],
       noAck: true,
-      queue: QUEUE,
+      queue: `${queue}_queue`,
       queueOptions: {
         durable: true,
       },

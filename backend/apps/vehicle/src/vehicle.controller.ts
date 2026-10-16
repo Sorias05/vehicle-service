@@ -7,12 +7,9 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import {
-  Ctx,
-  MessagePattern,
-  Payload,
-  RmqContext,
-} from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+
+import { Public } from '@app/authlib';
 
 import { VehicleService } from './vehicle.service';
 
@@ -21,13 +18,7 @@ export class VehicleController {
   constructor(private readonly vehicleService: VehicleService) {}
 
   @MessagePattern({ cmd: 'user-created' })
-  async postEmptyVehicle(
-    @Ctx() context: RmqContext,
-    @Payload() userId: number,
-  ) {
-    const channel = context.getChannelRef();
-    const message = context.getMessage();
-    channel.ack(message);
+  async postEmptyVehicle(@Payload() userId: number) {
     return this.vehicleService.postVehicle({
       brand: 'Unknown',
       model: 'Unknown',
@@ -37,13 +28,7 @@ export class VehicleController {
   }
 
   @MessagePattern({ cmd: 'get-vehicle-by-user' })
-  async getVehicleByUser(
-    @Ctx() context: RmqContext,
-    @Payload() userId: number,
-  ) {
-    const channel = context.getChannelRef();
-    const message = context.getMessage();
-    channel.ack(message);
+  async getVehicleByUser(@Payload() userId: number) {
     return this.vehicleService.getVehicle(userId);
   }
 
@@ -92,6 +77,7 @@ export class VehicleController {
     return this.vehicleService.postVehicle(vehicleDto);
   }
 
+  @Public()
   @Get()
   async getVehicles() {
     return this.vehicleService.getVehicles();

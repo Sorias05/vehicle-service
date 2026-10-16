@@ -41,7 +41,7 @@ export function createO11yConfig(serviceName: string): Params {
           return (
             req.url === '/health/live' ||
             req.url === '/health/ready' ||
-            req.url === '/metrics'
+            req.url === '/metrics/get'
           );
         },
       },

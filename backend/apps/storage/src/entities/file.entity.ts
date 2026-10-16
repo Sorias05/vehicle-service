@@ -2,12 +2,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-
-import { UserEntity } from './user.entity';
 
 export enum FileStatus {
   PENDING = 'pending',
@@ -42,9 +38,9 @@ export class FileEntity {
   })
   status: FileStatus;
 
-  @ManyToOne(() => UserEntity, (user) => user.vehicle)
-  @JoinColumn({ name: 'userId' })
-  user: UserEntity;
+  //   @ManyToOne(() => UserEntity, (user) => user.vehicle)
+  //   @JoinColumn({ name: 'userId' })
+  //   user: UserEntity;
 
   @CreateDateColumn()
   createdAt: Date;

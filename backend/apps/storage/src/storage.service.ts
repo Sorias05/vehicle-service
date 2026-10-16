@@ -17,10 +17,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
 import { In, Repository } from 'typeorm';
 
-import { FileEntity, FileStatus } from '@app/database/entities/file.entity';
 import { S3_CLIENT } from '@app/s3';
 
 import { UploadFileDto } from './create-upload-url.dto';
+import { FileEntity, FileStatus } from './entities/file.entity';
 
 @Injectable()
 export class StorageService {

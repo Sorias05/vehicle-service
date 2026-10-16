@@ -15,5 +15,9 @@
     { "path": "../../libs/health" },
     { "path": "../../libs/redis" },
     { "path": "../../libs/o11y" },
+    { "path": "../../libs/s3" },
+    { "path": "../../libs/rabbitmq" },
+    { "path": "../../libs/resilience" },
+    { "path": "../../libs/http" }
   ]
 }

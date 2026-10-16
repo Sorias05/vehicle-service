@@ -4,6 +4,7 @@ import { MicroserviceOptions } from '@nestjs/microservices';
 
 import { setupO11y } from '@app/o11y';
 import { getRabbitMqServerOptions } from '@app/rabbitmq';
+import { ServiceErrorRpcFilter } from '@app/shared';
 
 import { VehicleModule } from './vehicle.module';
 
@@ -16,12 +17,14 @@ async function bootstrap() {
   setupO11y(app);
 
   app.enableShutdownHooks();
-  app.connectMicroservice<MicroserviceOptions>(
+  const microservice = app.connectMicroservice<MicroserviceOptions>(
     getRabbitMqServerOptions(configService, 'vehicle'),
   );
 
+  microservice.useGlobalFilters(new ServiceErrorRpcFilter());
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN,
+    origin: configService.getOrThrow<string>('CORS_ORIGIN'),
     credentials: true,
   });
 

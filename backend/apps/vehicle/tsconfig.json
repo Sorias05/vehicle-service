@@ -16,6 +16,8 @@
     { "path": "../../libs/redis" },
     { "path": "../../libs/s3" },
     { "path": "../../libs/rabbitmq" },
-    { "path": "../../libs/o11y" }
+    { "path": "../../libs/o11y" },
+    { "path": "../../libs/resilience" },
+    { "path": "../../libs/http" }
   ]
 }

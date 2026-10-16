@@ -116,6 +116,33 @@
       "compilerOptions": {
         "tsConfigPath": "libs/o11y/tsconfig.json"
       }
+    },
+    "resilience": {
+      "type": "library",
+      "root": "libs/resilience",
+      "entryFile": "index",
+      "sourceRoot": "libs/resilience/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/resilience/tsconfig.json"
+      }
+    },
+    "http": {
+      "type": "library",
+      "root": "libs/http",
+      "entryFile": "index",
+      "sourceRoot": "libs/http/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/http/tsconfig.json"
+      }
+    },
+    "rpc": {
+      "type": "library",
+      "root": "libs/rpc",
+      "entryFile": "index",
+      "sourceRoot": "libs/rpc/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/rpc/tsconfig.json"
+      }
     }
   }
 }

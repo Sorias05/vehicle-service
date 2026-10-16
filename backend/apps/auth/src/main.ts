@@ -1,10 +1,12 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { MicroserviceOptions } from '@nestjs/microservices';
 import { RedisStore } from 'connect-redis';
 import * as session from 'express-session';
 
 import { setupO11y } from '@app/o11y';
 import { getRabbitMqServerOptions } from '@app/rabbitmq';
+import { ServiceErrorRpcFilter } from '@app/shared';
 
 import { AuthModule } from './auth.module';
 import { SESSION_STORE } from './session/session.provider';
@@ -18,7 +20,10 @@ async function bootstrap() {
   setupO11y(app);
 
   app.enableShutdownHooks();
-  app.connectMicroservice(getRabbitMqServerOptions(configService, 'auth'));
+  const microservice = app.connectMicroservice<MicroserviceOptions>(
+    getRabbitMqServerOptions(configService, 'auth'),
+  );
+  microservice.useGlobalFilters(new ServiceErrorRpcFilter());
 
   const redisStore = app.get<RedisStore>(SESSION_STORE);
 
@@ -36,7 +41,7 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: process.env.CORS_ORIGIN,
+    origin: configService.getOrThrow<string>('CORS_ORIGIN'),
     credentials: true,
   });
 

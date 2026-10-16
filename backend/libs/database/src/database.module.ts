@@ -1,26 +1,26 @@
 import { DynamicModule, Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
-import { entities } from './entities';
 
 @Module({})
 export class DatabaseModule {
-  static register(serviceEntities: any[]): DynamicModule {
-    const database = [
-      TypeOrmModule.forRoot({
-        type: 'postgres',
-        url: process.env.POSTGRES_URI,
-        entities: entities,
-        synchronize: false,
-        autoLoadEntities: false,
-      }),
-      TypeOrmModule.forFeature(serviceEntities),
-    ];
-
+  static register(serviceEntities: any[] = []): DynamicModule {
     return {
       module: DatabaseModule,
-      imports: database,
-      exports: database,
+      imports: [
+        TypeOrmModule.forRootAsync({
+          inject: [ConfigService],
+          useFactory: (configService: ConfigService) => ({
+            type: 'postgres',
+            url: configService.getOrThrow<string>('POSTGRES_URI'),
+            autoLoadEntities: true,
+            synchronize: false,
+            logging: configService.get('NODE_ENV') === 'development',
+          }),
+        }),
+        TypeOrmModule.forFeature(serviceEntities),
+      ],
+      exports: [TypeOrmModule],
     };
   }
 }

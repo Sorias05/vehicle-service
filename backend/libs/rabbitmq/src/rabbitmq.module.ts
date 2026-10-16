@@ -1,34 +1,30 @@
 import { DynamicModule, Module, Provider } from '@nestjs/common';
 
-import { getRabbitMqServiceToken } from './rabbitmq.constants';
+import { getRabbitMqTransportToken } from './rabbitmq.constants';
 import { RabbitMqClientLifecycle } from './rabbitmq.lifecycle';
-import {
-  getRabbitMqClientProvider,
-  RabbitMqClientProviderOptions,
-} from './rabbitmq.provider';
+import { getRabbitMqTransportProvider } from './rabbitmq.provider';
+import { RabbitMqTransportOptions } from './rabbitmq.transport';
 
 @Module({})
 export class RabbitMqModule {
   static register(
     service: string,
-    options?: RabbitMqClientProviderOptions,
+    options: RabbitMqTransportOptions = {},
   ): DynamicModule {
-    const provider: Provider = getRabbitMqClientProvider(service, options);
+    const transportProvider = getRabbitMqTransportProvider(service, options);
+    const transportToken = getRabbitMqTransportToken(service);
 
     const lifecycleProvider: Provider = {
       provide: Symbol(`RABBITMQ_LIFECYCLE:${service}`),
-      inject: [getRabbitMqServiceToken(service)],
-      useFactory: (client) => new RabbitMqClientLifecycle(client, service),
+      inject: [transportToken],
+      useFactory: (transport) =>
+        new RabbitMqClientLifecycle(transport, service),
     };
 
     return {
       module: RabbitMqModule,
-      providers: [provider, lifecycleProvider],
-      exports: [provider],
+      providers: [transportProvider, lifecycleProvider],
+      exports: [transportToken],
     };
-  }
-
-  static registerAuth(options?: RabbitMqClientProviderOptions): DynamicModule {
-    return this.register('auth', options);
   }
 }

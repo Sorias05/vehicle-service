@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 
 import { setupO11y } from '@app/o11y';
@@ -8,8 +9,16 @@ async function bootstrap() {
   const app = await NestFactory.create(StorageModule, {
     bufferLogs: true,
   });
+  const configService = app.get(ConfigService);
+
   setupO11y(app);
+
   app.enableShutdownHooks();
+  app.enableCors({
+    origin: configService.getOrThrow<string>('CORS_ORIGIN'),
+    credentials: true,
+  });
+
   await app.listen(5003);
 }
 

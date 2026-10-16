@@ -2,8 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { UserEntity } from '@app/database/entities/user.entity';
-
+import { UserEntity } from './entities/user.entity';
 import { HashService } from './hash.service';
 
 @Injectable()

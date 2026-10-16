@@ -65,6 +65,24 @@
       ],
       "@app/o11y/*": [
         "libs/o11y/src/*"
+      ],
+      "@app/resilience": [
+        "libs/resilience/src"
+      ],
+      "@app/resilience/*": [
+        "libs/resilience/src/*"
+      ],
+      "@app/http": [
+        "libs/http/src"
+      ],
+      "@app/http/*": [
+        "libs/http/src/*"
+      ],
+      "@app/rpc": [
+        "libs/rpc/src"
+      ],
+      "@app/rpc/*": [
+        "libs/rpc/src/*"
       ]
     }
   }
