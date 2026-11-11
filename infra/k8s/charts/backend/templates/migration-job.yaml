@@ -1,0 +1,47 @@
+{{- if .Values.migration.enabled }}
+{{- $command := required "migration.command must be supplied when migration.enabled=true" .Values.migration.command }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ printf "%s-migration" (include "backend.fullname" .) | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migration
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: {{ .Values.migration.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migration.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "backend.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      containers:
+        - name: migration
+          image: {{ required "app.image must be supplied" .Values.app.image | quote }}
+          imagePullPolicy: {{ .Values.app.imagePullPolicy }}
+          command:
+            {{- toYaml $command | nindent 12 }}
+          env:
+            - name: IS_DOCKER
+              value: {{ .Values.app.isDocker | quote }}
+          {{ if or .Values.config.configMapName .Values.config.secretName }}
+          envFrom:
+            {{ with .Values.config.configMapName }}
+            - configMapRef:
+                name: {{ . | quote }}
+            {{ end }}
+            {{ with .Values.config.secretName }}
+            - secretRef:
+                name: {{ . | quote }}
+            {{ end }}
+          {{ end }}
+          resources:
+            {{- toYaml .Values.app.resources | nindent 12 }}
+{{- end }}

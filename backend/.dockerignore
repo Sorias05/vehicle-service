@@ -1,6 +1,10 @@
 node_modules
 dist
 .env
+.env.secrets
+.env.*
+!.env.example
+!.env.secrets.example
 .git
 
 coverage

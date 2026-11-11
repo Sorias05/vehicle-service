@@ -1,0 +1,56 @@
+{{- $root := . -}}
+{{- $backendRoute := .Values.routes.backend -}}
+{{- $backendServices := .Values.services.backend -}}
+{{- if and $backendRoute.enabled (gt (len $backendServices) 0) }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ required "routes.backend.name is required" $backendRoute.name | quote }}
+  labels:
+    {{- include "gateway.labels" $root | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ include "gateway.gatewayName" $root | quote }}
+      sectionName: {{ $root.Values.gateway.listener.name | quote }}
+  rules:
+    {{- range $appKey, $service := $backendServices }}
+    - matches:
+        - path:
+            type: {{ default "PathPrefix" $backendRoute.pathType | quote }}
+            value: {{ printf "%s/%s/" (trimSuffix "/" $backendRoute.apiPrefix) $appKey | quote }}
+      {{- with $backendRoute.rewrite }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: {{ default "ReplacePrefixMatch" .type | quote }}
+              replacePrefixMatch: {{ required "routes.backend.rewrite.replacePrefixMatch is required" .replacePrefixMatch | quote }}
+      {{- end }}
+      backendRefs:
+        - name: {{ required (printf "services.backend.%s.name is required" $appKey) $service.name | quote }}
+          port: {{ required (printf "services.backend.%s.port is required" $appKey) $service.port }}
+    {{- end }}
+{{- end }}
+{{- $frontendRoute := .Values.routes.frontend -}}
+{{- if $frontendRoute.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ required "routes.frontend.name is required" $frontendRoute.name | quote }}
+  labels:
+    {{- include "gateway.labels" $root | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ include "gateway.gatewayName" $root | quote }}
+      sectionName: {{ $root.Values.gateway.listener.name | quote }}
+  rules:
+    - matches:
+        - path:
+            type: {{ default "PathPrefix" $frontendRoute.pathType | quote }}
+            value: {{ default "/" $frontendRoute.path | quote }}
+      backendRefs:
+        - name: {{ required "services.frontend.name is required when frontend route is enabled" $root.Values.services.frontend.name | quote }}
+          port: {{ required "services.frontend.port is required when frontend route is enabled" $root.Values.services.frontend.port }}
+{{- end }}

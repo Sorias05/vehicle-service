@@ -1,0 +1,50 @@
+# Resource names default to the Helm release name.
+nameOverride: ""
+fullnameOverride: ""
+
+# Optional app.kubernetes.io/part-of label.
+# Set from infra/.env (PROJECT_NAME) during deployment.
+partOf: ""
+
+app:
+  # Full image reference must be supplied when installing/rendering the chart.
+  # Example: vehicle-frontend:local
+  image: ""
+  imagePullPolicy: IfNotPresent
+  port: 80
+  replicas: 1
+
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+  probes:
+    startup:
+      enabled: false
+      path: /
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 30
+
+    liveness:
+      enabled: true
+      path: /
+      periodSeconds: 10
+      timeoutSeconds: 2
+      failureThreshold: 3
+
+    readiness:
+      enabled: true
+      path: /
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 3
+
+service:
+  type: ClusterIP
+  # null means: use app.port.
+  port: null

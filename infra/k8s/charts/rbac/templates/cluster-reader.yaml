@@ -1,0 +1,40 @@
+{{- if .Values.clusterReader.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ required "clusterReader.name is required when clusterReader.enabled is true" .Values.clusterReader.name | quote }}
+  labels:
+    {{- include "rbac.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - namespaces
+      - persistentvolumes
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups:
+      - storage.k8s.io
+    resources:
+      - storageclasses
+      - csidrivers
+      - csinodes
+      - volumeattachments
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+      - clusterrolebindings
+    verbs:
+      - get
+      - list
+      - watch
+{{- end }}

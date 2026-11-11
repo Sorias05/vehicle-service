@@ -52,23 +52,7 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
-  POSTGRES_USER?: string;
-
-  @IsOptional()
-  @IsString()
-  POSTGRES_PASSWORD?: string;
-
-  @IsOptional()
-  @IsString()
-  POSTGRES_DB?: string;
-
-  @IsOptional()
-  @IsString()
   POSTGRES_URI?: string;
-
-  @IsOptional()
-  @IsString()
-  POSTGRES_URI_LOCAL?: string;
 
   // S3
 

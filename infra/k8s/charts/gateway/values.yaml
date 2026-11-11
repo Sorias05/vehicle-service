@@ -1,0 +1,49 @@
+nameOverride: ""
+fullnameOverride: ""
+partOf: ""
+
+gateway:
+  name: ""
+  className: nginx
+  listener:
+    name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: Same
+
+nginxProxy:
+  enabled: true
+  name: ""
+  spec:
+    kubernetes:
+      deployment:
+        container:
+          hostPorts:
+            - port: 80
+              containerPort: 80
+      service:
+        type: ClusterIP
+
+# Populated at deploy time from the APPLICATIONS registry in infra/.env.
+services:
+  backend: {}
+  frontend:
+    name: frontend
+    port: 80
+
+routes:
+  backend:
+    enabled: true
+    name: backend-routes
+    apiPrefix: /api
+    pathType: PathPrefix
+    rewrite:
+      type: ReplacePrefixMatch
+      replacePrefixMatch: /
+  frontend:
+    enabled: true
+    name: frontend-route
+    path: /
+    pathType: PathPrefix

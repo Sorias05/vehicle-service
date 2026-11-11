@@ -1,0 +1,63 @@
+# Resource names default to the Helm release name. This keeps Service DNS names
+# compatible with the application-to-application URLs and Gateway routes.
+nameOverride: ""
+fullnameOverride: ""
+
+# Set from infra/.env when rendering/installing the chart.
+# An empty value omits the app.kubernetes.io/part-of label.
+partOf: ""
+
+app:
+  # Must be supplied by the deployment configuration, e.g. auth-api:<tag>.
+  image: ""
+  imagePullPolicy: IfNotPresent
+  port: 8080
+  replicas: 1
+  isDocker: true
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 128Mi
+
+  probes:
+    startup:
+      enabled: true
+      path: /health/live
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 30
+
+    liveness:
+      enabled: true
+      path: /health/live
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+    readiness:
+      enabled: true
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 3
+
+service:
+  type: ClusterIP
+  # null means: use app.port.
+  port: null
+
+config:
+  configMapName: backend-config
+  secretName: backend-secrets
+
+migration:
+  # Backend services have migrations by default. Override to false for auth.
+  enabled: true
+  # Required when migration.enabled=true. Example:
+  # command: ["npm", "run", "migration:vehicle:run:prod"]
+  command: []
+  backoffLimit: 0
+  activeDeadlineSeconds: 600

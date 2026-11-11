@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "backend.fullname" . }}
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.app.replicas }}
+  selector:
+    matchLabels:
+      {{- include "backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "backend.labels" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: app
+          image: {{ required "app.image must be supplied" .Values.app.image | quote }}
+          imagePullPolicy: {{ .Values.app.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.app.port }}
+              protocol: TCP
+          env:
+            - name: IS_DOCKER
+              value: {{ .Values.app.isDocker | quote }}
+          {{ if or .Values.config.configMapName .Values.config.secretName }}
+          envFrom:
+            {{ with .Values.config.configMapName }}
+            - configMapRef:
+                name: {{ . | quote }}
+            {{ end }}
+            {{ with .Values.config.secretName }}
+            - secretRef:
+                name: {{ . | quote }}
+            {{ end }}
+          {{ end }}
+          resources:
+            {{- toYaml .Values.app.resources | nindent 12 }}
+          {{ if .Values.app.probes.startup.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.app.probes.startup.path | quote }}
+              port: http
+            periodSeconds: {{ .Values.app.probes.startup.periodSeconds }}
+            timeoutSeconds: {{ .Values.app.probes.startup.timeoutSeconds }}
+            failureThreshold: {{ .Values.app.probes.startup.failureThreshold }}
+          {{ end }}
+          {{ if .Values.app.probes.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.app.probes.liveness.path | quote }}
+              port: http
+            periodSeconds: {{ .Values.app.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.app.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.app.probes.liveness.failureThreshold }}
+          {{ end }}
+          {{ if .Values.app.probes.readiness.enabled }}
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: {{ .Values.app.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.app.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.app.probes.readiness.failureThreshold }}
+          {{ end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "backend.fullname" . }}
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "backend.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port | default .Values.app.port }}
+      targetPort: http
+      protocol: TCP

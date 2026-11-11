@@ -1,0 +1,21 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "gateway.gatewayName" . }}
+  labels:
+    {{- include "gateway.labels" . | nindent 4 }}
+spec:
+  gatewayClassName: {{ required "gateway.className is required" .Values.gateway.className | quote }}
+  {{- if .Values.nginxProxy.enabled }}
+  infrastructure:
+    parametersRef:
+      group: gateway.nginx.org
+      kind: NginxProxy
+      name: {{ include "gateway.nginxProxyName" . }}
+  {{- end }}
+  listeners:
+    - name: {{ required "gateway.listener.name is required" .Values.gateway.listener.name | quote }}
+      protocol: {{ required "gateway.listener.protocol is required" .Values.gateway.listener.protocol | quote }}
+      port: {{ required "gateway.listener.port is required" .Values.gateway.listener.port }}
+      allowedRoutes:
+        {{- toYaml .Values.gateway.listener.allowedRoutes | nindent 8 }}

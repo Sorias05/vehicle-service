@@ -53,7 +53,7 @@ import { UserService } from './user.service';
     }),
     HttpClientModule.register({
       target: 'external-vehicle-api',
-      baseURL: process.env.EXTERNAL_VEHICLE_API_URL || "http://vehicle:5001",
+      baseURL: process.env.EXTERNAL_VEHICLE_API_URL || 'http://vehicle:5001',
       requestTimeoutMs: 5000,
       resilienceBuilder: <T>(ctx) =>
         createResilience<T>({

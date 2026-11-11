@@ -1,0 +1,48 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ required "bindings.admin.name is required" .Values.bindings.admin.name | quote }}
+  labels:
+    {{- include "rbac.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ required "serviceAccounts.admin.name is required" .Values.serviceAccounts.admin.name | quote }}
+    namespace: {{ .Release.Namespace | quote }}
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ required "bindings.viewer.name is required" .Values.bindings.viewer.name | quote }}
+  labels:
+    {{- include "rbac.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ required "serviceAccounts.viewer.name is required" .Values.serviceAccounts.viewer.name | quote }}
+    namespace: {{ .Release.Namespace | quote }}
+roleRef:
+  kind: ClusterRole
+  name: view
+  apiGroup: rbac.authorization.k8s.io
+
+{{- if .Values.clusterReader.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ required "bindings.viewerClusterReader.name is required" .Values.bindings.viewerClusterReader.name | quote }}
+  labels:
+    {{- include "rbac.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ required "serviceAccounts.viewer.name is required" .Values.serviceAccounts.viewer.name | quote }}
+    namespace: {{ .Release.Namespace | quote }}
+roleRef:
+  kind: ClusterRole
+  name: {{ required "clusterReader.name is required when clusterReader.enabled is true" .Values.clusterReader.name | quote }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

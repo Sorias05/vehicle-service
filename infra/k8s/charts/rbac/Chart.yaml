@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rbac
+description: Helm chart for Kubernetes access service accounts and cluster-level RBAC
+type: application
+version: 0.2.0
+appVersion: "1.0.0"

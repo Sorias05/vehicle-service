@@ -6,7 +6,8 @@ import { validate } from './env.validation';
 export async function getConfig(): Promise<DynamicModule> {
   return ConfigModule.forRoot({
     isGlobal: true,
-    envFilePath: '.env',
+    envFilePath: ['.env.secrets', '.env'],
+    ignoreEnvFile: process.env.NODE_ENV === 'production',
     validate,
   });
 }

@@ -1,7 +1,6 @@
 services:
   nginx:
     image: nginx:1.27-alpine
-    container_name: vehicle-nginx
     ports:
       - "8080:80"
     volumes:
@@ -13,6 +12,11 @@ services:
         condition: service_healthy
       vehicle:
         condition: service_healthy
+      auth:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+    restart: unless-stopped
     networks:
       - edge
 
@@ -25,31 +29,6 @@ services:
     restart: unless-stopped
     mem_limit: 100m
 
-  jaeger:
-    image: cr.jaegertracing.io/jaegertracing/jaeger:2.21.0
-    environment:
-      OTEL_TRACES_SAMPLER: always_off
-    ports:
-      - "16686:16686"
-    networks:
-      - backend
-    restart: unless-stopped
-
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.161.0
-    command:
-      - "--config=/etc/otelcol/config.yaml"
-    volumes:
-      - ./o11y/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
-    ports:
-      - "4317:4317"
-      - "4318:4318"
-    networks:
-      - backend
-    depends_on:
-      - jaeger
-    restart: unless-stopped
-
   user:
     build:
       context: ../backend
@@ -60,6 +39,7 @@ services:
       - "4000:5000"
     env_file:
       - ../backend/.env
+      - ../backend/.env.secrets
     environment:
       - IS_DOCKER=true
     command: sh -c "npm run migration:user:run:prod && npm run start:user"
@@ -81,7 +61,7 @@ services:
           "-e",
           "fetch('http://localhost:5000/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
-      interval: 60s
+      interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
@@ -98,6 +78,9 @@ services:
       - "4002:5002"
     env_file:
       - ../backend/.env
+      - ../backend/.env.secrets
+    environment:
+      IS_DOCKER: "true"
     networks:
       - edge
       - backend
@@ -116,7 +99,7 @@ services:
           "-e",
           "fetch('http://localhost:5002/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
-      interval: 60s
+      interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
@@ -135,6 +118,7 @@ services:
       - "s3.localhost.localstack.cloud:host-gateway"
     env_file:
       - ../backend/.env
+      - ../backend/.env.secrets
     environment:
       - IS_DOCKER=true
     command: sh -c "npm run migration:storage:run:prod && npm run start:storage"
@@ -148,6 +132,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      localstack:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -156,7 +142,7 @@ services:
           "-e",
           "fetch('http://localhost:5003/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
-      interval: 60s
+      interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
@@ -173,6 +159,7 @@ services:
       - "4001:5001"
     env_file:
       - ../backend/.env
+      - ../backend/.env.secrets
     environment:
       - IS_DOCKER=true
     command: sh -c "npm run migration:vehicle:run:prod && npm run start:vehicle"
@@ -194,88 +181,9 @@ services:
           "-e",
           "fetch('http://localhost:5001/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
-      interval: 60s
+      interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
     restart: unless-stopped
     mem_limit: 100m
-
-  postgres:
-    image: postgres:15
-    ports:
-      - "5433:5432"
-    env_file:
-      - .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    mem_limit: 150m
-
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    restart: unless-stopped
-    mem_limit: 50m
-
-  rabbitmq:
-    image: rabbitmq:3.13-management
-    env_file:
-      - .env
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_listener", "5672"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    mem_limit: 200m
-
-  localstack:
-    image: localstack/localstack:2026.7.5
-    container_name: vehicle-localstack
-    ports:
-      - "4566:4566"
-    env_file:
-      - .env
-    environment:
-      SERVICES: s3
-      AWS_DEFAULT_REGION: eu-central-1
-    volumes:
-      - ./localstack/init/ready.d:/etc/localstack/init/ready.d
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - backend
-      - edge
-    restart: unless-stopped
-    mem_limit: 512m
-
-volumes:
-  postgres_data:
-  redis_data:
-  rabbitmq_data:
-
-networks:
-  edge:
-    driver: bridge
-
-  backend:
-    driver: bridge

@@ -1,0 +1,22 @@
+# Values for the upstream NGINX Gateway Fabric Helm chart.
+# Keep this file limited to intentional project-level overrides.
+
+nginxGateway:
+  gatewayClassName: nginx
+  gatewayControllerName: gateway.nginx.org/nginx-gateway-controller
+  replicas: 1
+  image:
+    repository: ghcr.io/nginx/nginx-gateway-fabric
+    tag: "2.8.0"
+    pullPolicy: IfNotPresent
+  metrics:
+    enable: true
+    port: 9113
+  gwAPIExperimentalFeatures:
+    enable: false
+
+nginx:
+  image:
+    repository: ghcr.io/nginx/nginx-gateway-fabric/nginx
+    tag: "2.8.0"
+    pullPolicy: IfNotPresent
