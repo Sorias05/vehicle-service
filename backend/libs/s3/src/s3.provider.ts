@@ -12,6 +12,7 @@ export const s3ClientProvider: Provider = {
       region: configService.getOrThrow<string>('AWS_REGION'),
       endpoint: configService.getOrThrow<string>('AWS_S3_ENDPOINT'),
       forcePathStyle: true,
+      requestChecksumCalculation: 'WHEN_REQUIRED',
       credentials: {
         accessKeyId: configService.getOrThrow<string>('AWS_ACCESS_KEY_ID'),
         secretAccessKey: configService.getOrThrow<string>(

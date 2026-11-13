@@ -1,0 +1,5 @@
+nginx:
+  container:
+    hostPorts:
+      - port: 80
+        containerPort: 80

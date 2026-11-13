@@ -8,11 +8,10 @@ export const redisClientProvider: Provider = {
   provide: REDIS_CLIENT,
   inject: [ConfigService],
   useFactory: async (configService: ConfigService) => {
-    const host = configService.getOrThrow<string>('REDIS_HOST');
-    const port = configService.getOrThrow<string>('REDIS_PORT');
+    const url = configService.getOrThrow<string>('REDIS_URL');
 
     const client = createClient({
-      url: `redis://${host}:${port}`,
+      url,
     });
 
     client.on('error', (error) => {

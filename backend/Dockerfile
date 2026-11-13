@@ -9,7 +9,7 @@ RUN npm ci
 
 COPY . .
 
-RUN npm run build
+RUN npm run build:libs && npm run build:${APP_NAME} && npm run build:aliases
 
 RUN find dist/apps \
     -mindepth 1 \

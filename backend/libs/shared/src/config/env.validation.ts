@@ -16,31 +16,13 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
-  RABBITMQ_USER?: string;
-
-  @IsOptional()
-  @IsString()
-  RABBITMQ_PASS?: string;
-
-  @IsOptional()
-  @IsString()
-  RABBITMQ_HOST?: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  RABBITMQ_PORT?: number;
+  RABBITMQ_URL?: string;
 
   // Redis
 
   @IsOptional()
   @IsString()
-  REDIS_HOST?: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  REDIS_PORT?: number;
+  REDIS_URL?: string;
 
   // Session
 

@@ -5,15 +5,12 @@ export function getRabbitMqServerOptions(
   configService: ConfigService,
   queue: string,
 ): RmqOptions {
-  const USER = configService.getOrThrow<string>('RABBITMQ_USER');
-  const PASSWORD = configService.getOrThrow<string>('RABBITMQ_PASS');
-  const HOST = configService.getOrThrow<string>('RABBITMQ_HOST');
-  const PORT = configService.getOrThrow<string>('RABBITMQ_PORT');
+  const URL = configService.getOrThrow<string>('RABBITMQ_URL');
 
   return {
     transport: Transport.RMQ,
     options: {
-      urls: [`amqp://${USER}:${PASSWORD}@${HOST}:${PORT}`],
+      urls: [URL],
       noAck: true,
       queue: `${queue}_queue`,
       queueOptions: {

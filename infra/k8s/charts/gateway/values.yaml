@@ -18,11 +18,6 @@ nginxProxy:
   name: ""
   spec:
     kubernetes:
-      deployment:
-        container:
-          hostPorts:
-            - port: 80
-              containerPort: 80
       service:
         type: ClusterIP
 

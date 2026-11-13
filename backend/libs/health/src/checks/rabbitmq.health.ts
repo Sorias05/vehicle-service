@@ -17,11 +17,13 @@ export class RabbitMqHealthCheck implements HealthCheck {
         strict: false,
       });
 
-      const host = config.getOrThrow<string>('RABBITMQ_HOST');
+      const rabbitUrl = new URL(config.getOrThrow<string>('RABBITMQ_URL'));
 
-      const port = Number(config.getOrThrow<string>('RABBITMQ_PORT'));
+      const port = Number(
+        rabbitUrl.port || (rabbitUrl.protocol === 'amqps:' ? 5671 : 5672),
+      );
 
-      await this.checkConnection(host, port);
+      await this.checkConnection(rabbitUrl.hostname, port);
 
       return {
         name: this.name,

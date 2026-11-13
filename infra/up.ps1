@@ -472,7 +472,7 @@ function Get-ApplicationRegistry {
 
         $type = if ($key -eq $FrontendApplication) { 'frontend' } else { 'backend' }
 
-        $migrationScript = "migration:$key:run:prod"
+        $migrationScript = 'migration:{0}:run:prod' -f $key
         if ($type -eq 'frontend' -or $BackendScriptNames -notcontains $migrationScript) {
             $migrationScript = ''
         }
@@ -544,41 +544,12 @@ function Start-BackendHelmReleases {
         return
     }
 
-    Write-Step 'Deploying backend applications and running available migration hooks'
-    $jobs = @()
-    foreach ($spec in $specs) {
-        $jobs += Start-Job -Name "helm-$($spec.Name)" -ArgumentList (, $spec.Arguments) -ScriptBlock {
-            param([string[]]$HelmArguments)
-            $output = @(& helm @HelmArguments 2>&1 | ForEach-Object { $_.ToString() })
-            [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output }
-        }
-    }
+    Write-Step 'Deploying backend applications sequentially and running migration hooks'
 
-    try {
-        $null = $jobs | Wait-Job
-        $failed = $false
-        foreach ($job in $jobs) {
-            $results = @(Receive-Job -Job $job)
-            $result = $results | Where-Object { $_.PSObject.Properties.Name -contains 'ExitCode' } | Select-Object -Last 1
-            Write-Host "`n--- Helm release: $($job.Name) ---" -ForegroundColor Cyan
-            if ($null -eq $result) {
-                foreach ($line in $results) { Write-Host $line }
-                Write-Host "Release $($job.Name) did not return an exit status." -ForegroundColor Red
-                $failed = $true
-            }
-            else {
-                foreach ($line in $result.Output) { Write-Host $line }
-                if ([int]$result.ExitCode -ne 0) {
-                    Write-Host "Release $($job.Name) failed (exit $($result.ExitCode))." -ForegroundColor Red
-                    $failed = $true
-                }
-            }
-            if ($job.State -ne 'Completed') { $failed = $true }
-        }
-        if ($failed) { throw 'At least one backend Helm release failed. Inspect the release output above before retrying.' }
-    }
-    finally {
-        if ($jobs.Count -gt 0) { $jobs | Remove-Job -Force -ErrorAction SilentlyContinue }
+    foreach ($spec in $specs) {
+        Invoke-Checked -FilePath 'helm' `
+            -Arguments ([string[]]$spec.Arguments) `
+            -Description "Installing/upgrading backend release '$($spec.Name)'"
     }
 }
 
@@ -617,12 +588,17 @@ try {
     $GatewayChart = Join-Path $K8sDir 'charts\gateway'
     $RbacChart = Join-Path $K8sDir 'charts\rbac'
     $NgfValues = Join-Path $K8sDir 'addons\nginx-gateway-fabric\values.yaml'
+    $GrafanaValues = Join-Path $InfraDir 'o11y\grafana\values.yaml'
 
     foreach ($path in @(
             $InfraSecretsFile, $NamespaceManifest,
             (Join-Path $BackendChart 'Chart.yaml'), (Join-Path $FrontendChart 'Chart.yaml'),
             (Join-Path $GatewayChart 'Chart.yaml'), (Join-Path $RbacChart 'Chart.yaml'), $NgfValues
         )) { Assert-File -Path $path }
+    
+    if ($InfrastructureMode -eq 'external') {
+        Assert-File -Path $GrafanaValues
+    }
 
     $namespaceText = Get-Content -LiteralPath $NamespaceManifest -Raw
     $namespaceMatch = [regex]::Match($namespaceText, '(?ms)^metadata:\s*\r?\n\s+name:\s*([^\s#]+)')
@@ -682,6 +658,11 @@ try {
     $NgfReleaseName = Get-Setting -Name 'NGF_RELEASE_NAME' -Default 'ngf'
     $NgfNamespace = Get-Setting -Name 'NGF_NAMESPACE' -Default 'nginx-gateway'
     $NgfVersion = Get-Setting -Name 'NGF_CHART_VERSION' -Default '2.8.0'
+    $GrafanaValues = Join-Path -Path $PSScriptRoot -ChildPath 'o11y\grafana\values.yaml'
+    $GrafanaReleaseName = 'grafana-cloud'
+    $GrafanaNamespace = 'monitoring'
+    $GrafanaSecretName = 'grafana-cloud-fleet'
+    $GrafanaChartVersion = '4.6.0'
     $ImageRegistry = Get-Setting -Name 'IMAGE_REGISTRY' -Default ''
     $ImageTag = Get-Setting -Name 'IMAGE_TAG' -Default 'latest'
     $defaultImagePullPolicy = 'IfNotPresent'
@@ -811,6 +792,121 @@ try {
     }
     else { $KubeContext = $BootstrapContext }
 
+    if ($InfrastructureMode -eq 'external') {
+        Write-Step 'Installing/upgrading Grafana Cloud Kubernetes Monitoring'
+
+        $grafanaUsername = Get-Setting -Name 'GRAFANA_FLEET_USERNAME'
+        $grafanaPassword = Get-Setting -Name 'GRAFANA_FLEET_PASSWORD'
+
+        if ([string]::IsNullOrWhiteSpace($grafanaUsername)) {
+            throw 'GRAFANA_FLEET_USERNAME is missing from infra/.env.secrets.'
+        }
+
+        if ([string]::IsNullOrWhiteSpace($grafanaPassword)) {
+            throw 'GRAFANA_FLEET_PASSWORD is missing from infra/.env.secrets.'
+        }
+
+        if ($grafanaUsername -notmatch '^\d+$') {
+            throw 'GRAFANA_FLEET_USERNAME must contain the numeric Grafana Cloud Instance ID.'
+        }
+
+        # Grafana Cloud OTLP tenant ID is the same numeric Instance ID.
+        # These additional keys are required by the generated Alloy configuration.
+        $grafanaSecretValues = [ordered]@{
+            username = $grafanaUsername
+            password = $grafanaPassword
+            tenantId = $grafanaUsername
+            ca       = ''
+            cert     = ''
+            key      = ''
+        }
+
+        Write-Step 'Ensuring Grafana monitoring namespace exists'
+
+        $grafanaNamespaceManifest = @"
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: $GrafanaNamespace
+"@
+
+        $grafanaNamespaceManifest | & kubectl --context $KubeContext apply -f -
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "Could not create or update namespace '$GrafanaNamespace'."
+        }
+
+        Write-Step 'Updating Grafana Cloud Kubernetes Secret'
+
+        $grafanaSecretFile = Write-DotEnvTempFile -Values $grafanaSecretValues
+
+        try {
+            $secretManifest = & kubectl --context $KubeContext create secret generic $GrafanaSecretName `
+                --namespace $GrafanaNamespace `
+                "--from-env-file=$grafanaSecretFile" `
+                --dry-run=client -o yaml
+
+            if ($LASTEXITCODE -ne 0) {
+                throw 'Could not generate Grafana Cloud Kubernetes Secret.'
+            }
+
+            $secretManifest | & kubectl --context $KubeContext apply -f -
+
+            if ($LASTEXITCODE -ne 0) {
+                throw 'Could not apply Grafana Cloud Kubernetes Secret.'
+            }
+        }
+        finally {
+            if (Test-Path -LiteralPath $grafanaSecretFile) {
+                Remove-Item -LiteralPath $grafanaSecretFile -Force
+            }
+            $TempFiles.Remove($grafanaSecretFile) | Out-Null
+        }
+
+        Write-Step 'Updating Grafana Helm repository'
+
+        Invoke-Checked -FilePath 'helm' -Arguments @(
+            'repo', 'add', 'grafana',
+            'https://grafana.github.io/helm-charts',
+            '--force-update'
+        ) -Description 'Adding/updating Grafana Helm repository'
+
+        Invoke-Checked -FilePath 'helm' -Arguments @(
+            'repo', 'update', 'grafana'
+        ) -Description 'Updating Grafana Helm repository index'
+
+        Write-Step 'Deploying Grafana Kubernetes Monitoring'
+
+        Invoke-Checked -FilePath 'helm' -Arguments @(
+            'upgrade', '--install',
+            $GrafanaReleaseName,
+            'grafana/k8s-monitoring',
+            '--version', $GrafanaChartVersion,
+            '--reset-values',
+            '--kube-context', $KubeContext,
+            '--namespace', $GrafanaNamespace,
+            '--create-namespace',
+            '--values', $GrafanaValues,
+            '--wait',
+            '--timeout', '10m'
+        ) -Description 'Installing/upgrading Grafana Cloud Kubernetes Monitoring'
+
+        Write-Step 'Verifying Grafana OTLP receiver'
+
+        $receiverService = & kubectl --context $KubeContext get service grafana-cloud-otel-receiver `
+            --namespace $GrafanaNamespace -o name
+
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace(($receiverService -join ''))) {
+            throw 'Grafana OTLP receiver Service was not created.'
+        }
+
+        Write-Host 'Grafana Kubernetes Monitoring is ready.' -ForegroundColor Green
+        Write-Host 'OTLP HTTP: http://grafana-cloud-otel-receiver.monitoring.svc.cluster.local:4318/v1/traces' -ForegroundColor Green
+    }
+    else {
+        Write-Host 'Grafana Kubernetes Monitoring is skipped in compose mode.' -ForegroundColor Gray
+    }
+
     if ($BackendApplications.Count -gt 0) {
         Assert-File -Path $BackendEnvFile
         Assert-File -Path $BackendSecretsFile
@@ -911,11 +1007,19 @@ try {
         'crd/httproutes.gateway.networking.k8s.io'
     ) -Description 'Waiting for Gateway API CRDs'
 
+    
     Write-Step 'Installing/upgrading NGINX Gateway Fabric'
+    $ngfProviderValues = Join-Path $PSScriptRoot "k8s/providers/$K8sDistribution/ngf-values.yaml"
+
+    if (-not (Test-Path -LiteralPath $ngfProviderValues)) {
+        throw "NGF values file not found for provider '$K8sDistribution': $ngfProviderValues"
+    }
+
     Invoke-Checked -FilePath 'helm' -Arguments @(
         'upgrade', '--install', $NgfReleaseName, 'oci://ghcr.io/nginx/charts/nginx-gateway-fabric',
         '--version', $NgfVersion, '--kube-context', $KubeContext,
-        '--namespace', $NgfNamespace, '--create-namespace', '--values', $NgfValues,
+        '--namespace', $NgfNamespace, '--create-namespace',
+        '--values', $NgfValues, '--values', $ngfProviderValues,
         '--set-string', "nginxGateway.gatewayClassName=$GatewayClass", '--wait', '--timeout', '5m'
     ) -Description 'Installing/upgrading NGINX Gateway Fabric'
     Invoke-Checked -FilePath 'kubectl' -Arguments @(
@@ -994,6 +1098,38 @@ try {
         '--namespace', $Namespace, '--timeout=180s'
     ) -Description 'Waiting for NGINX data plane'
 
+    if ($K8sDistribution -eq 'kind') {
+        $deploymentJson = & kubectl --context $KubeContext get "deployment/$GatewayName-nginx" `
+            --namespace $Namespace -o json
+
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Could not retrieve NGINX Gateway Deployment.'
+        }
+
+        $deployment = $deploymentJson | ConvertFrom-Json
+
+        $nginxContainer = $deployment.spec.template.spec.containers |
+        Where-Object { $_.name -eq 'nginx' } |
+        Select-Object -First 1
+
+        $httpPort = $nginxContainer.ports |
+        Where-Object { $_.containerPort -eq 80 } |
+        Select-Object -First 1
+
+        if ($null -eq $httpPort -or $httpPort.hostPort -ne 80) {
+            $actualHostPort = if ($null -ne $httpPort) {
+                $httpPort.hostPort
+            }
+            else {
+                'missing'
+            }
+
+            throw "NGINX Gateway is missing hostPort 80. Actual value: '$actualHostPort'."
+        }
+
+        Write-Host 'NGINX Gateway hostPort: 80 OK' -ForegroundColor Green
+    }
+
     if ($BackendApplications.Count -gt 0) {
         Wait-HttpRouteAccepted -ContextName $KubeContext -TargetNamespace $Namespace `
             -RouteName 'backend-routes' -GatewayName $GatewayName -TimeoutSeconds 120
@@ -1034,7 +1170,14 @@ try {
     Write-Host "NGF:       $NgfReleaseName ($NgfVersion)" -ForegroundColor Green
 }
 catch {
-    Write-Host "`nUP FAILED: $($_.Exception.Message)" -ForegroundColor Red
+    $caughtError = $_
+
+    Write-Host "`nUP FAILED: $($caughtError.Exception.Message)" -ForegroundColor Red
+    Write-Host "Line: $($caughtError.InvocationInfo.ScriptLineNumber)" -ForegroundColor Yellow
+    Write-Host "Command: $($caughtError.InvocationInfo.Line)" -ForegroundColor Yellow
+    Write-Host "Position: $($caughtError.InvocationInfo.PositionMessage)" -ForegroundColor Yellow
+    Write-Host "Stack trace: $($caughtError.ScriptStackTrace)" -ForegroundColor DarkGray
+
     Write-Host 'Existing resources were not automatically deleted.' -ForegroundColor Yellow
     exit 1
 }

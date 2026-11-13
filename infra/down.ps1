@@ -58,7 +58,7 @@ function Read-DotEnvFile {
         $value = $line.Substring($separator + 1).Trim()
         if ($value.Length -ge 2 -and
             (($value.StartsWith('"') -and $value.EndsWith('"')) -or
-             ($value.StartsWith("'") -and $value.EndsWith("'")))) {
+            ($value.StartsWith("'") -and $value.EndsWith("'")))) {
             $value = $value.Substring(1, $value.Length - 2)
         }
 
@@ -119,8 +119,8 @@ function Get-BooleanSetting {
     )
 
     return (Get-BooleanValue `
-        -Value (Get-Setting -Name $Name -Default ([string]$Default)) `
-        -SettingName $Name)
+            -Value (Get-Setting -Name $Name -Default ([string]$Default)) `
+            -SettingName $Name)
 }
 
 function Get-ApplicationReleaseNames {
@@ -190,10 +190,10 @@ function Test-HelmReleaseExists {
     }
 
     return (@(
-        $releases | Where-Object {
-            $_.name -eq $ReleaseName -and $_.namespace -eq $ReleaseNamespace
-        }
-    ).Count -gt 0)
+            $releases | Where-Object {
+                $_.name -eq $ReleaseName -and $_.namespace -eq $ReleaseNamespace
+            }
+        ).Count -gt 0)
 }
 
 function Remove-HelmRelease {
@@ -205,9 +205,9 @@ function Remove-HelmRelease {
     )
 
     if (-not (Test-HelmReleaseExists `
-        -ReleaseName $ReleaseName `
-        -ReleaseNamespace $ReleaseNamespace `
-        -ContextName $ContextName)) {
+                -ReleaseName $ReleaseName `
+                -ReleaseNamespace $ReleaseNamespace `
+                -ContextName $ContextName)) {
         Write-Host "Helm release '$ReleaseName' is not installed; skipping." -ForegroundColor Yellow
         return
     }
@@ -337,12 +337,15 @@ try {
     }
 
     $ApplicationReleaseNames = @(Get-ApplicationReleaseNames `
-        -Registry (Get-RequiredSetting -Name 'APPLICATIONS'))
+            -Registry (Get-RequiredSetting -Name 'APPLICATIONS'))
 
     $GatewayName = Get-Setting -Name 'GATEWAY_NAME' -Default 'gateway'
     $RbacNamespace = Get-Setting -Name 'RBAC_NAMESPACE' -Default 'k8s-access'
     $NgfReleaseName = Get-Setting -Name 'NGF_RELEASE_NAME' -Default 'ngf'
     $NgfNamespace = Get-Setting -Name 'NGF_NAMESPACE' -Default 'nginx-gateway'
+    $GrafanaReleaseName = 'grafana-cloud'
+    $GrafanaNamespace = 'monitoring'
+    $GrafanaSecretName = 'grafana-cloud-fleet'
 
     if ($Namespace -in @($RbacNamespace, $NgfNamespace)) {
         throw 'K8S_NAMESPACE must be different from RBAC_NAMESPACE and NGF_NAMESPACE; refusing to delete a shared namespace.'
@@ -352,6 +355,10 @@ try {
     # Keep them by default on k3s; local Kind is treated as project-dedicated.
     $RemoveClusterComponents = Get-BooleanSetting `
         -Name 'REMOVE_CLUSTER_COMPONENTS' `
+        -Default ($K8sDistribution -eq 'kind')
+
+    $RemoveGrafanaMonitoring = Get-BooleanSetting `
+        -Name 'REMOVE_GRAFANA_MONITORING' `
         -Default ($K8sDistribution -eq 'kind')
 
     # A Kind cluster is deleted only when explicitly requested. This setting
@@ -367,6 +374,7 @@ try {
     Write-Host "Kubernetes context:        $KubeContext" -ForegroundColor Gray
     Write-Host "Application namespace:     $Namespace" -ForegroundColor Gray
     Write-Host "Remove NGF/RBAC releases:  $RemoveClusterComponents" -ForegroundColor Gray
+    Write-Host "Remove Grafana Monitoring: $RemoveGrafanaMonitoring" -ForegroundColor Gray
     if ($K8sDistribution -eq 'kind') {
         Write-Host "Delete Kind cluster:       $DeleteKindCluster" -ForegroundColor Gray
     }
@@ -415,6 +423,35 @@ try {
             $releaseName = $ApplicationReleaseNames[$index]
             Remove-HelmRelease -ReleaseName $releaseName -ReleaseNamespace $Namespace `
                 -ContextName $KubeContext -Description "Uninstalling application release '$releaseName'"
+        }
+
+        if ($RemoveGrafanaMonitoring) {
+            Write-Step 'Removing Grafana Cloud Kubernetes Monitoring'
+
+            # First uninstall the parent chart.
+            # Grafana Alloy Operator removes the collector instances it manages.
+            Remove-HelmRelease -ReleaseName $GrafanaReleaseName `
+                -ReleaseNamespace $GrafanaNamespace `
+                -ContextName $KubeContext `
+                -Description 'Uninstalling Grafana Cloud Kubernetes Monitoring'
+
+            # The Secret is manually managed and is not owned by the Helm release.
+            # Remove it separately after stopping Alloy.
+            $monitoringNamespace = & kubectl --context $KubeContext get namespace $GrafanaNamespace -o name 2>$null
+
+            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace(($monitoringNamespace -join ''))) {
+                Invoke-Checked -FilePath 'kubectl' -Arguments @(
+                    '--context', $KubeContext,
+                    'delete', 'secret', $GrafanaSecretName,
+                    '--namespace', $GrafanaNamespace,
+                    '--ignore-not-found=true'
+                ) -Description 'Removing Grafana Cloud Kubernetes Secret'
+            }
+
+            Write-Host 'Grafana Cloud connection has been removed from Kubernetes.' -ForegroundColor Green
+        }
+        else {
+            Write-Host 'Keeping Grafana Cloud Kubernetes Monitoring.' -ForegroundColor Gray
         }
 
         if ($RemoveClusterComponents) {

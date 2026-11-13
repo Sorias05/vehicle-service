@@ -1,0 +1,91 @@
+cluster:
+  name: vehicle-service-kind
+
+collectorCommon:
+  alloy:
+    remoteConfig:
+      enabled: true
+      url: https://fleet-management-prod-011.grafana.net
+      auth:
+        type: basic
+        usernameKey: username
+        passwordKey: password
+      secret:
+        create: false
+        name: grafana-cloud-fleet
+        namespace: monitoring
+
+destinations:
+  grafanaCloudTraces:
+    type: otlp
+    protocol: http
+    url: https://otlp-gateway-prod-eu-west-4.grafana.net/otlp
+
+    auth:
+      type: basic
+      usernameKey: username
+      passwordKey: password
+
+    metrics:
+      enabled: false
+    logs:
+      enabled: false
+    traces:
+      enabled: true
+
+    secret:
+      create: false
+      name: grafana-cloud-fleet
+      namespace: monitoring
+
+collectors:
+  alloy-daemonset:
+    presets:
+      - small
+      - root
+      - host-network
+      - host-storage
+      - host-cgroup
+      - clustered
+      - service-discovery
+      - filesystem-log-reader
+      - daemonset
+
+  alloy-deployment:
+    presets:
+      - small
+      - clustered
+      - deployment
+    extraService:
+      enabled: true
+      name: otel-receiver
+
+telemetryServices:
+  node-exporter:
+    deploy: true
+
+  kube-state-metrics:
+    deploy: true
+
+applicationObservability:
+  enabled: true
+  collector: alloy-deployment
+  destinations:
+    - grafanaCloudTraces
+
+  receivers:
+    otlp:
+      http:
+        enabled: true
+        port: 4318
+
+  metrics:
+    enabled: false
+  logs:
+    enabled: false
+  traces:
+    enabled: true
+
+  connectors:
+    grafanaCloudMetrics:
+      enabled: false
