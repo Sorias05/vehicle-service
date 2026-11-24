@@ -17,11 +17,10 @@
     "start:auth": "node --require ./dist/apps/auth/src/instrumentation.js dist/apps/auth/src/main.js",
     "start:vehicle": "node --require ./dist/apps/vehicle/src/instrumentation.js dist/apps/vehicle/src/main.js",
     "start:storage": "node --require ./dist/apps/storage/src/instrumentation.js dist/apps/storage/src/main.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./apps/backend/test/jest-e2e.json",
+    "test": "ts-node scripts/tests/script.ts",
+    "test:gen": "ts-node scripts/tests/generate.ts",
+    "test:run": "ts-node scripts/tests/run.ts",
+    "test:clean": "ts-node scripts/tests/clean.ts",
     "build:auth": "nest build auth",
     "build:user": "nest build user",
     "build:vehicle": "nest build vehicle",
@@ -102,6 +101,7 @@
     "redis": "^5.11.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
+    "ts-morph": "^28.0.0",
     "typeorm": "^0.3.28"
   },
   "devDependencies": {
